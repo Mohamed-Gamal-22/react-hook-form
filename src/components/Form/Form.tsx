@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
+import React, { useEffect, useState } from "react";
+import { FieldErrors, useForm } from "react-hook-form";
 import { DevTool } from "@hookform/devtools";
 
 export default function Form() {
@@ -14,12 +14,24 @@ export default function Form() {
       },
       phoneNumbers: ["", ""],
       age: 2,
-      birthDay: new Date(),
+      birthDay: new Date().toISOString().split("T")[0],
+
     },
+    mode: "onBlur",
   });
 
   //   console.log(form);
-  const { register, control, handleSubmit, formState, watch } = form;
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState,
+    watch,
+    getValues,
+    setValue,
+    reset,
+    trigger
+  } = form;
 
   const [count, setcount] = useState(Math.random());
 
@@ -33,31 +45,67 @@ export default function Form() {
     };
     phoneNumbers: string[];
     age: number;
-    birthDay: Date;
+    birthDay: string;
   };
 
   function getFormData(data: UserData) {
     console.log(data);
   }
 
-  const x = watch();
+  // const x = watch("userName");
+  // console.log(x);
+
+  // const x = getValues("userName")
+  // console.log(x);
+
+  function setDataField() {
+    setValue("userName", "hambozo", {
+      shouldDirty: true,
+      shouldValidate: true,
+      shouldTouch: true,
+    });
+  }
+
+  const {
+    touchedFields,
+    dirtyFields,
+    isDirty,
+    isValid,
+    isSubmitting,
+    isSubmitted,
+    isSubmitSuccessful,
+    submitCount,
+  } = formState;
+  // console.log("touched", touchedFields);
+  // console.log("dirty", dirtyFields);
+  // console.log("isDirty", isDirty);
+  // console.log({isSubmitted, isSubmitting, isSubmitSuccessful});
   
+
+  function onError(errors: FieldErrors<UserData>) {
+    console.log(errors);
+  }
+
+  // reset only when successfull sumbision
+  useEffect(()=>{
+    reset()
+  }, [isSubmitSuccessful, reset])
 
   return (
     <>
       <div>
         <form
           noValidate
-          onSubmit={handleSubmit(getFormData)}
+          onSubmit={handleSubmit(getFormData, onError)}
           style={{ display: "flex", flexDirection: "column" }}
         >
           <div>
-            <label htmlFor="name">UserName {count}</label>
+            <label htmlFor="name">UserName</label>
             <input
               type="text"
               id="name"
               {...register("userName", {
-                required: "userName is Required",
+                // required: "userName is Required",
               })}
             />
             {formState.errors?.userName && (
@@ -71,7 +119,7 @@ export default function Form() {
               type="email"
               id="email"
               {...register("userEmail", {
-                required: "userEmail is Required",
+                // required: "userEmail is Required",
                 // pattern: {
                 //   value: /^Aa@yahoo.com$/,
                 //   message: "invalid email",
@@ -101,7 +149,8 @@ export default function Form() {
               type="text"
               id="channel"
               {...register("userChannel", {
-                required: "userChannel is Required",
+                // required: "userChannel is Required",
+                disabled: watch("userName") === "", // if type in userName enable otherwise not
               })}
             />
             {formState.errors?.userChannel && (
@@ -134,12 +183,12 @@ export default function Form() {
               type="text"
               id="facebook"
               {...register("social.facebook", {
-                required: "FaceBook Is Required",
-                validate: (fieldValue) => {
-                  if (fieldValue !== "Mm@yahoo.com") {
-                    return "invalid facebook ya wad";
-                  }
-                },
+                // required: "FaceBook Is Required",
+                // validate: (fieldValue) => {
+                //   if (fieldValue !== "Mm@yahoo.com") {
+                //     return "invalid facebook ya wad";
+                //   }
+                // },
               })}
             />
             {formState.errors.social?.facebook && (
@@ -153,12 +202,12 @@ export default function Form() {
               type="text"
               id="phone1"
               {...register("phoneNumbers.0", {
-                required: "phone1 is required",
-                validate: (filedValue) => {
-                  if (!/^01[0125][0-9]{8}$/.test(filedValue)) {
-                    return "not valid phone 1 yasta";
-                  }
-                },
+                // required: "phone1 is required",
+                // validate: (filedValue) => {
+                //   if (!/^01[0125][0-9]{8}$/.test(filedValue)) {
+                //     return "not valid phone 1 yasta";
+                //   }
+                // },
               })}
             />
 
@@ -173,12 +222,12 @@ export default function Form() {
               type="text"
               id="phone2"
               {...register("phoneNumbers.1", {
-                required: "phone 1 is required",
-                validate: (filedValue) => {
-                  if (!/^01[1205][0-9]{8}$/.test(filedValue)) {
-                    return "not valid aywa";
-                  }
-                },
+                // required: "phone 1 is required",
+                // validate: (filedValue) => {
+                //   if (!/^01[1205][0-9]{8}$/.test(filedValue)) {
+                //     return "not valid aywa";
+                //   }
+                // },
               })}
             />
             {formState.errors.phoneNumbers?.[1] && (
@@ -192,7 +241,7 @@ export default function Form() {
               type="number"
               id="age"
               {...register("age", {
-                required: "phone 1 is required",
+                // required: "age is required",
                 valueAsNumber: true,
               })}
             />
@@ -205,8 +254,8 @@ export default function Form() {
               type="date"
               id="birthDay"
               {...register("birthDay", {
-                required: "birthday 1 is required",
-                valueAsDate: true,
+                // required: "birthday 1 is required",
+                // valueAsDate: true,
               })}
             />
             {formState.errors?.birthDay && (
@@ -214,7 +263,15 @@ export default function Form() {
             )}
           </div>
 
-          <button type="submit">Submit</button>
+          <button type="submit" >
+            Submit
+          </button>
+          <button disabled={!isDirty} type="button" onClick={() => reset()} >
+            Reset
+          </button>
+          <button onClick={setDataField} type="button">
+            change values
+          </button>
         </form>
         <DevTool control={control} />
       </div>
