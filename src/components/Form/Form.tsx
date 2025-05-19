@@ -1,9 +1,48 @@
 import React, { useEffect, useState } from "react";
 import { FieldErrors, useForm } from "react-hook-form";
 import { DevTool } from "@hookform/devtools";
+import z, { coerce } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 export default function Form() {
-  const form = useForm<UserData>({
+  const schema = z.object({
+    userName: z
+      .string()
+      .min(2, { message: "min length is 2 chars" })
+      .max(20, { message: "max length is 20 chars" }),
+    userEmail: z.string().min(1, "email is required").email({
+      message: "Invalid Email",
+    }),
+    userChannel: z.string().min(1, "channel is required"),
+    social: z.object({
+      gmail: z
+        .string()
+        .max(15, "max chars is 15")
+        .email("invalid email..")
+        .min(1, "gmail is required"),
+      facebook: z
+        .string()
+        .max(15, "max chars is 15")
+        .email("invalid email..")
+        .min(1, "facebook is required"),
+    }),
+    phoneNumbers: z.tuple(
+      [
+        z.string().regex(/^01[1250][0-9]{8}$/, { message: "not valid number" }),
+        z.string().regex(/^01[1250][0-9]{8}$/, { message: "not valid number" }),
+      ],
+      { message: "Numbers should be enterd !" }
+    ),
+    age: z.coerce
+      .number()
+      .min(18, "age must be greater than or equal 18")
+      .max(60, "age must be less than or equal 60"),
+    birthDay: z.string().date(),
+  });
+
+  type AuthSchema = z.infer<typeof schema>;
+
+  const form = useForm<AuthSchema>({
     defaultValues: {
       userName: "",
       userEmail: "",
@@ -14,10 +53,10 @@ export default function Form() {
       },
       phoneNumbers: ["", ""],
       age: 2,
-      birthDay: new Date().toISOString().split("T")[0],
-
+      birthDay: "",
     },
     mode: "onBlur",
+    resolver: zodResolver(schema),
   });
 
   //   console.log(form);
@@ -30,25 +69,25 @@ export default function Form() {
     getValues,
     setValue,
     reset,
-    trigger
+    trigger,
   } = form;
 
   const [count, setcount] = useState(Math.random());
 
-  type UserData = {
-    userEmail: string;
-    userName: string;
-    userChannel: string;
-    social: {
-      gmail: string;
-      facebook: string;
-    };
-    phoneNumbers: string[];
-    age: number;
-    birthDay: string;
-  };
+  // type UserData = {
+  //   userEmail: string;
+  //   userName: string;
+  //   userChannel: string;
+  //   social: {
+  //     gmail: string;
+  //     facebook: string;
+  //   };
+  //   phoneNumbers: string[];
+  //   age: number;
+  //   birthDay: string;
+  // };
 
-  function getFormData(data: UserData) {
+  function getFormData(data: AuthSchema) {
     console.log(data);
   }
 
@@ -80,23 +119,22 @@ export default function Form() {
   // console.log("dirty", dirtyFields);
   // console.log("isDirty", isDirty);
   // console.log({isSubmitted, isSubmitting, isSubmitSuccessful});
-  
 
-  function onError(errors: FieldErrors<UserData>) {
-    console.log(errors);
-  }
+  // function onError(errors: FieldErrors<AuthSchema>) {
+  //   console.log(errors);
+  // }
 
   // reset only when successfull sumbision
-  useEffect(()=>{
-    reset()
-  }, [isSubmitSuccessful, reset])
+  useEffect(() => {
+    reset();
+  }, [isSubmitSuccessful, reset]);
 
   return (
     <>
       <div>
         <form
           noValidate
-          onSubmit={handleSubmit(getFormData, onError)}
+          onSubmit={handleSubmit(getFormData /*, {onError}*/)}
           style={{ display: "flex", flexDirection: "column" }}
         >
           <div>
@@ -124,18 +162,18 @@ export default function Form() {
                 //   value: /^Aa@yahoo.com$/,
                 //   message: "invalid email",
                 // },
-                validate: {
-                  user: (fieldValue) => {
-                    if (fieldValue == "user@yahoo.com") {
-                      return "user noooooo";
-                    }
-                  },
-                  admin: (fieldValue) => {
-                    if (fieldValue == "admin@yahoo.com") {
-                      return "choose another email...";
-                    }
-                  },
-                },
+                // validate: {
+                //   user: (fieldValue) => {
+                //     if (fieldValue == "user@yahoo.com") {
+                //       return "user noooooo";
+                //     }
+                //   },
+                //   admin: (fieldValue) => {
+                //     if (fieldValue == "admin@yahoo.com") {
+                //       return "choose another email...";
+                //     }
+                //   },
+                // },
               })}
             />
             {formState.errors?.userEmail && (
@@ -150,7 +188,7 @@ export default function Form() {
               id="channel"
               {...register("userChannel", {
                 // required: "userChannel is Required",
-                disabled: watch("userName") === "", // if type in userName enable otherwise not
+                // disabled: watch("userName") === "", // if type in userName enable otherwise not
               })}
             />
             {formState.errors?.userChannel && (
@@ -164,12 +202,12 @@ export default function Form() {
               type="text"
               id="gmail"
               {...register("social.gmail", {
-                required: "gmail is required",
-                validate: (fildValue) => {
-                  if (fildValue !== "Mm@yahoo.com") {
-                    return "Invalid Email Ya M3alem !";
-                  }
-                },
+                // required: "gmail is required",
+                // validate: (fildValue) => {
+                //   if (fildValue !== "Mm@yahoo.com") {
+                //     return "Invalid Email Ya M3alem !";
+                //   }
+                // },
               })}
             />
             {formState.errors.social?.gmail && (
@@ -242,7 +280,7 @@ export default function Form() {
               id="age"
               {...register("age", {
                 // required: "age is required",
-                valueAsNumber: true,
+                // valueAsNumber: true,
               })}
             />
             {formState.errors?.age && <p>{formState.errors.age?.message}</p>}
@@ -263,10 +301,8 @@ export default function Form() {
             )}
           </div>
 
-          <button type="submit" >
-            Submit
-          </button>
-          <button disabled={!isDirty} type="button" onClick={() => reset()} >
+          <button type="submit">Submit</button>
+          <button disabled={!isDirty} type="button" onClick={() => reset()}>
             Reset
           </button>
           <button onClick={setDataField} type="button">
